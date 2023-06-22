@@ -1,1 +1,1 @@
-from dataset.shapenet import ShapeNet
+from dataset.CoveredDataset import CoveredDataset

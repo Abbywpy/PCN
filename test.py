@@ -7,7 +7,7 @@ import torch
 import torch.utils.data as Data
 
 from models import PCN
-from dataset import ShapeNet
+from dataset import CoveredDataset
 from visualization import plot_pcd_one_view
 from metrics.metric import l1_cd, l2_cd, emd, f_score
 
@@ -36,7 +36,7 @@ def test_single_category(category, model, params, save=True):
         make_dir(image_dir)
         make_dir(output_dir)
 
-    test_dataset = ShapeNet('/media/server/new/datasets/PCN', 'test_novel' if params.novel else 'test', category)
+    test_dataset = CoveredDataset(params.data_path, 'test', category)
     test_dataloader = Data.DataLoader(test_dataset, batch_size=params.batch_size, shuffle=False)
 
     index = 1
@@ -101,7 +101,7 @@ def test(params, save=False):
 
 
 def test_single_category_emd(category, model, params):
-    test_dataset = ShapeNet('/media/server/new/datasets/PCN', 'test_novel' if params.novel else 'test', category)
+    test_dataset = CoveredDataset('/media/server/new/datasets/PCN', 'test_novel' if params.novel else 'test', category)
     test_dataloader = Data.DataLoader(test_dataset, batch_size=params.batch_size, shuffle=False)
 
     total_emd = 0.0
@@ -151,6 +151,7 @@ if __name__ == '__main__':
     parser.add_argument('--exp_name', type=str, help='Tag of experiment')
     parser.add_argument('--result_dir', type=str, default='results', help='Results directory')
     parser.add_argument('--ckpt_path', type=str, help='The path of pretrained model.')
+    parser.add_argument('--data_path', type=str, default=None, help='The path of dataset')
     parser.add_argument('--category', type=str, default='all', help='Category of point clouds')
     parser.add_argument('--batch_size', type=int, default=1, help='Batch size for data loader')
     parser.add_argument('--num_workers', type=int, default=6, help='Num workers for data loader')

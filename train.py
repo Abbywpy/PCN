@@ -9,7 +9,7 @@ import torch.optim as Optim
 from torch.utils.data.dataloader import DataLoader
 from tensorboardX import SummaryWriter
 
-from dataset import ShapeNet
+from dataset import CoveredDataset
 from models import PCN
 from metrics.metric import l1_cd
 from metrics.loss import cd_loss_L1, emd_loss
@@ -54,7 +54,6 @@ def prepare_logger(params):
 
     return ckpt_dir, epochs_dir, log_fd, train_writer, val_writer
 
-
 def train(params):
     torch.backends.cudnn.benchmark = True
 
@@ -62,11 +61,12 @@ def train(params):
 
     log(log_fd, 'Loading Data...')
 
-    train_dataset = ShapeNet('data/PCN', 'train', params.category)
-    val_dataset = ShapeNet('data/PCN', 'valid', params.category)
+    train_dataset = CoveredDataset(params.data_path, 'train', params.category)
+    val_dataset = CoveredDataset(params.data_path, 'valid', params.category)
 
     train_dataloader = DataLoader(train_dataset, batch_size=params.batch_size, shuffle=True, num_workers=params.num_workers)
     val_dataloader = DataLoader(val_dataset, batch_size=params.batch_size, shuffle=False, num_workers=params.num_workers)
+    
     log(log_fd, "Dataset loaded!")
 
     # model
@@ -172,6 +172,7 @@ if __name__ == '__main__':
     parser.add_argument('--exp_name', type=str, help='Tag of experiment')
     parser.add_argument('--log_dir', type=str, default='log', help='Logger directory')
     parser.add_argument('--ckpt_path', type=str, default=None, help='The path of pretrained model')
+    parser.add_argument('--data_path', type=str, default=None, help='The path of dataset')
     parser.add_argument('--lr', type=float, default=0.0001, help='Learning rate')
     parser.add_argument('--category', type=str, default='all', help='Category of point clouds')
     parser.add_argument('--epochs', type=int, default=200, help='Epochs of training')
@@ -181,6 +182,7 @@ if __name__ == '__main__':
     parser.add_argument('--device', type=str, default='cuda:0', help='device for training')
     parser.add_argument('--log_frequency', type=int, default=10, help='Logger frequency in every epoch')
     parser.add_argument('--save_frequency', type=int, default=10, help='Model saving frequency')
+
     params = parser.parse_args()
     
     train(params)

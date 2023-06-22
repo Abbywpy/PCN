@@ -10,46 +10,15 @@ import numpy as np
 import open3d as o3d
 
 
-class ShapeNet(data.Dataset):
+class CoveredDataset(data.Dataset):
     """
-    ShapeNet dataset in "PCN: Point Completion Network". It contains 28974 training
+    CoveredDataset dataset in "PCN: Point Completion Network". It contains 28974 training
     samples while each complete samples corresponds to 8 viewpoint partial scans, 800
     validation samples and 1200 testing samples.
     """
     
     def __init__(self, dataroot, split, category):
-        assert split in ['train', 'valid', 'test', 'test_novel'], "split error value!"
-
-        self.cat2id = {
-            # seen categories
-            "airplane"  : "02691156",  # plane
-            "cabinet"   : "02933112",  # dresser
-            "car"       : "02958343",
-            "chair"     : "03001627",
-            "lamp"      : "03636649",
-            "sofa"      : "04256520",
-            "table"     : "04379243",
-            "vessel"    : "04530566",  # boat
-            
-            # alis for some seen categories
-            "boat"      : "04530566",  # vessel
-            "couch"     : "04256520",  # sofa
-            "dresser"   : "02933112",  # cabinet
-            "airplane"  : "02691156",  # airplane
-            "watercraft": "04530566",  # boat
-
-            # unseen categories
-            "bus"       : "02924116",
-            "bed"       : "02818832",
-            "bookshelf" : "02871439",
-            "bench"     : "02828884",
-            "guitar"    : "03467517",
-            "motorbike" : "03790512",
-            "skateboard": "04225987",
-            "pistol"    : "03948459",
-        }
-
-        # self.id2cat = {cat_id: cat for cat, cat_id in self.cat2id.items()}
+        assert split in ['train', 'valid', 'test'], "split error value!"
 
         self.dataroot = dataroot
         self.split = split
@@ -58,16 +27,20 @@ class ShapeNet(data.Dataset):
         self.partial_paths, self.complete_paths = self._load_data()
     
     def __getitem__(self, index):
-        if self.split == 'train':
-            partial_path = self.partial_paths[index].format(random.randint(0, 7))
-        else:
-            partial_path = self.partial_paths[index]
-        complete_path = self.complete_paths[index]
+        try:
+            if self.split == 'train':
+                partial_path = self.partial_paths[index].format(random.randint(0, 7))
+            else:
+                partial_path = self.partial_paths[index]
+            complete_path = self.complete_paths[index]
 
-        partial_pc = self.random_sample(self.read_point_cloud(partial_path), 2048)
-        complete_pc = self.random_sample(self.read_point_cloud(complete_path), 16384)
+            partial_pc = self.random_sample(self.read_point_cloud(partial_path), 2048)
+            complete_pc = self.random_sample(self.read_point_cloud(complete_path), 16384)
 
-        return torch.from_numpy(partial_pc), torch.from_numpy(complete_pc)
+            return torch.from_numpy(partial_pc), torch.from_numpy(complete_pc)
+        except IOError:
+            # Skip the entire batch
+            return None
 
     def __len__(self):
         return len(self.complete_paths)
@@ -80,7 +53,6 @@ class ShapeNet(data.Dataset):
             lines = list(filter(lambda x: x.startswith(self.cat2id[self.category]), lines))
         
         partial_paths, complete_paths = list(), list()
-
         for line in lines:
             category, model_id = line.split('/')
             if self.split == 'train':
@@ -100,3 +72,4 @@ class ShapeNet(data.Dataset):
         if idx.shape[0] < n:
             idx = np.concatenate([idx, np.random.randint(pc.shape[0], size=n-pc.shape[0])])
         return pc[idx[:n]]
+
