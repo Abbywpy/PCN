@@ -3,6 +3,7 @@ sys.path.append('.')
 
 import os
 import random
+from loguru import logger
 
 import torch
 import torch.utils.data as data
@@ -24,44 +25,25 @@ class CoveredDataset(data.Dataset):
         self.split = split
         self.category = category
 
-        self.partial_paths, self.complete_paths = self._load_data()
+        self.data_paths = self._load_data()
+        logger.info("Load {} {} samples".format(len(self.data_paths), self.split))
     
     def __getitem__(self, index):
-        try:
-            if self.split == 'train':
-                partial_path = self.partial_paths[index].format(random.randint(0, 7))
-            else:
-                partial_path = self.partial_paths[index]
-            complete_path = self.complete_paths[index]
+        complete_path = self.data_paths[index]
 
-            partial_pc = self.random_sample(self.read_point_cloud(partial_path), 2048)
-            complete_pc = self.random_sample(self.read_point_cloud(complete_path), 16384)
+        complete_pc = self.random_sample(self.read_point_cloud(complete_path), 16384)
+        partial_pc = self.random_sample(self.perturbation(complete_pc), 2048)
 
-            return torch.from_numpy(partial_pc), torch.from_numpy(complete_pc)
-        except IOError:
-            # Skip the entire batch
-            return None
+        return torch.from_numpy(partial_pc), torch.from_numpy(complete_pc)
 
     def __len__(self):
-        return len(self.complete_paths)
+        return len(self.data_paths)
 
     def _load_data(self):
         with open(os.path.join(self.dataroot, '{}.list').format(self.split), 'r') as f:
             lines = f.read().splitlines()
-
-        if self.category != 'all':
-            lines = list(filter(lambda x: x.startswith(self.cat2id[self.category]), lines))
-        
-        partial_paths, complete_paths = list(), list()
-        for line in lines:
-            category, model_id = line.split('/')
-            if self.split == 'train':
-                partial_paths.append(os.path.join(self.dataroot, self.split, 'partial', category, model_id + '_{}.ply'))
-            else:
-                partial_paths.append(os.path.join(self.dataroot, self.split, 'partial', category, model_id + '.ply'))
-            complete_paths.append(os.path.join(self.dataroot, self.split, 'complete', category, model_id + '.ply'))
-        
-        return partial_paths, complete_paths
+        data_paths = [os.path.join(self.dataroot, self.category, line) for line in lines]
+        return data_paths
     
     def read_point_cloud(self, path):
         pc = o3d.io.read_point_cloud(path)
@@ -72,4 +54,14 @@ class CoveredDataset(data.Dataset):
         if idx.shape[0] < n:
             idx = np.concatenate([idx, np.random.randint(pc.shape[0], size=n-pc.shape[0])])
         return pc[idx[:n]]
+    
+    def perturbation(self, pc, sigma=0.01):
+        idx = np.random.permutation(pc.shape[0])[:int(sigma*pc.shape[0])]
+
+        mask = np.ones(pc.shape[0], dtype=bool)
+        mask[idx] = False
+
+        partial_pc = pc[mask]
+
+        return partial_pc
 
