@@ -7,13 +7,12 @@ import torch
 import torch.utils.data as Data
 
 from models import PCN
-from dataset import CoveredDataset
+from dataset import SimulationDataset
 from visualization import plot_pcd_one_view
 from metrics.metric import l1_cd, l2_cd, emd, f_score
 
 
-CATEGORIES_PCN       = ['airplane', 'cabinet', 'car', 'chair', 'lamp', 'sofa', 'table', 'vessel']
-CATEGORIES_PCN_NOVEL = ['bus', 'bed', 'bookshelf', 'bench', 'guitar', 'motorbike', 'skateboard', 'pistol']
+CATEGORIES_PCN  = ['human']
 
 
 def make_dir(dir_path):
@@ -36,7 +35,7 @@ def test_single_category(category, model, params, save=True):
         make_dir(image_dir)
         make_dir(output_dir)
 
-    test_dataset = CoveredDataset(params.data_path, 'test', category)
+    test_dataset = SimulationDataset(params.data_path, 'test', category)
     test_dataloader = Data.DataLoader(test_dataset, batch_size=params.batch_size, shuffle=False)
 
     index = 1
@@ -80,10 +79,7 @@ def test(params, save=False):
     print('\033[33m{:20s}{:20s}{:20s}{:20s}\033[0m'.format('--------', '-----------', '-----------', '--------------'))
 
     if params.category == 'all':
-        if params.novel:
-            categories = CATEGORIES_PCN_NOVEL
-        else:
-            categories = CATEGORIES_PCN
+        categories = CATEGORIES_PCN
         
         l1_cds, l2_cds, fscores = list(), list(), list()
         for category in categories:
@@ -101,7 +97,7 @@ def test(params, save=False):
 
 
 def test_single_category_emd(category, model, params):
-    test_dataset = CoveredDataset('/media/server/new/datasets/PCN', 'test_novel' if params.novel else 'test', category)
+    test_dataset = SimulationDataset(params.data_path, 'test', category)
     test_dataloader = Data.DataLoader(test_dataset, batch_size=params.batch_size, shuffle=False)
 
     total_emd = 0.0
@@ -128,10 +124,7 @@ def test_emd(params):
     print('\033[33m{:20s}{:20s}\033[0m'.format('--------', '---------'))
 
     if params.category == 'all':
-        if params.novel:
-            categories = CATEGORIES_PCN_NOVEL
-        else:
-            categories = CATEGORIES_PCN
+        categories = CATEGORIES_PCN
         
         emds = list()
         for category in categories:
@@ -157,7 +150,6 @@ if __name__ == '__main__':
     parser.add_argument('--num_workers', type=int, default=6, help='Num workers for data loader')
     parser.add_argument('--device', type=str, default='cuda:0', help='Device for testing')
     parser.add_argument('--save', type=bool, default=False, help='Saving test result')
-    parser.add_argument('--novel', type=bool, default=False, help='unseen categories for testing')
     parser.add_argument('--emd', type=bool, default=False, help='Whether evaluate emd')
     params = parser.parse_args()
 
