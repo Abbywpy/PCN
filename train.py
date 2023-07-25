@@ -2,6 +2,7 @@ import argparse
 import os
 import datetime
 import random
+from loguru import logger
 
 import torch
 import torch.optim as Optim
@@ -76,7 +77,7 @@ def train(params):
     optimizer = Optim.Adam(model.parameters(), lr=params.lr, betas=(0.9, 0.999))
     lr_schedual = Optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.7)
 
-    step = len(train_dataloader) // params.log_frequency
+    step = 1
 
     # load pretrained model and optimizer
     if params.ckpt_path is not None:
@@ -174,15 +175,17 @@ if __name__ == '__main__':
     parser.add_argument('--ckpt_path', type=str, default=None, help='The path of pretrained model')
     parser.add_argument('--data_path', type=str, default=None, help='The path of dataset')
     parser.add_argument('--lr', type=float, default=0.0001, help='Learning rate')
-    parser.add_argument('--category', type=str, default='all', help='Category of point clouds')
+    parser.add_argument('--category', type=str, default='human', help='Category of point clouds')
     parser.add_argument('--epochs', type=int, default=200, help='Epochs of training')
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size for data loader')
     parser.add_argument('--coarse_loss', type=str, default='cd', help='loss function for coarse point cloud')
     parser.add_argument('--num_workers', type=int, default=6, help='num_workers for data loader')
     parser.add_argument('--device', type=str, default='cuda:0', help='device for training')
-    parser.add_argument('--log_frequency', type=int, default=10, help='Logger frequency in every epoch')
     parser.add_argument('--save_frequency', type=int, default=10, help='Model saving frequency')
 
     params = parser.parse_args()
     
     train(params)
+
+
+# python train.py --exp_name PCN_16384 --lr 0.0001 --epochs 400 --batch_size 16 --coarse_loss cd --num_workers 8 --data_path /data/puwong/pcn/data/covered
