@@ -4,3 +4,6 @@ log
 .idea
 data/pcn
 extensions/
+*.zip
+*.docx
+SimbothFormat/
